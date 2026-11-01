@@ -22,11 +22,26 @@
         chatTimer: null, uptimeStart: null, uptimeTimer: null, speed: 1, mood: "auto",
         webcamStream: null, uploadedVideoUrl: null, chatPaused: false, bits: 2500, lines: 0,
         superChatTimer: null, superChatHideTimer: null, superChatClearTimer: null,
-        raider: null
+        raider: null, raidAt: 0
     };
     const MAX_LINES = 250;
     const streamerName = () => $("my-streamer-name").textContent.trim();
     const gameName = () => $("game-name").textContent.trim();
+    // Context handed to the generator for every message
+    const ctx = () => ({
+        streamer: streamerName(), game: gameName(), title: $("stream-title").textContent.trim(), viewers: state.viewers,
+        raidActive: state.raidAccepted && Date.now() - state.raidAt < 120000, raid: state.raider
+    });
+    // Scheduled lines (reactions / replies) that fire alongside the main chat loop
+    const pendingTimers = new Set();
+    function scheduleLines(lines) {
+        lines.forEach(({ chatter, text, delay }) => {
+            const t = setTimeout(() => { pendingTimers.delete(t); if (state.streaming) appendChatMessage(chatter.name, text, chatter.color, { badges: chatter.badges }); }, delay);
+            pendingTimers.add(t);
+        });
+    }
+    function clearPending() { pendingTimers.forEach(clearTimeout); pendingTimers.clear(); }
+    const react = (type, extra = {}) => { if (state.streaming) scheduleLines(Generator.react(type, Object.assign(ctx(), extra))); };
 
     // ---------------------------------------------------------------- Toasts
     function toast(text, kind = "") {
@@ -63,6 +78,19 @@
         });
         return frag;
     }
+    // Twitch lightens dark name colours in dark mode so names like #0000FF stay legible.
+    const colorCache = new Map();
+    function readableColor(hex) {
+        if (colorCache.has(hex)) return colorCache.get(hex);
+        const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+        if (!m) return hex;
+        let r = parseInt(m[1].slice(0, 2), 16) / 255, g = parseInt(m[1].slice(2, 4), 16) / 255, b = parseInt(m[1].slice(4, 6), 16) / 255;
+        const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        let out = hex;
+        if (lum < 0.35) { const k = 0.35 - lum + 0.25; r = Math.min(1, r + k); g = Math.min(1, g + k); b = Math.min(1, b + k); out = `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`; }
+        colorCache.set(hex, out);
+        return out;
+    }
     function timestampEl() {
         const t = document.createElement("span");
         t.className = "chat-timestamp";
@@ -84,7 +112,7 @@
         line.appendChild(timestampEl());
         if (opts.badges && opts.badges.length) { const bs = document.createElement("span"); bs.className = "chat-badges"; opts.badges.forEach(b => bs.appendChild(badgeEl(b))); line.appendChild(bs); }
         const name = document.createElement("span");
-        name.className = "chat-username"; name.style.color = color; name.textContent = user;
+        name.className = "chat-username"; name.style.color = readableColor(color); name.textContent = user;
         name.addEventListener("click", () => { userChatInput.value = `@${user} ${userChatInput.value}`.trimEnd() + " "; userChatInput.focus(); });
         const text = document.createElement("span");
         text.className = "chat-text"; text.appendChild(renderText(msg));
@@ -234,7 +262,7 @@
     streamVideo.volume = 0.5; syncPlayUI(); syncMuteUI();
     function toggleTheater() { document.body.classList.toggle("theater"); }
     function toggleFullscreen() { document.fullscreenElement ? document.exitFullscreen() : player.requestFullscreen?.(); }
-    function makeClip() { toast("Clip created! (Simulated — nothing was saved.)"); if (state.streaming) appendSystemMessage(`${streamerName()} created a clip: "${$("stream-title").textContent.slice(0, 40)}"`); }
+    function makeClip() { toast("Clip created! (Simulated — nothing was saved.)"); if (state.streaming) { appendSystemMessage(`${streamerName()} created a clip: "${$("stream-title").textContent.slice(0, 40)}"`); react("clip"); } }
     $("pc-theater").addEventListener("click", toggleTheater);
     $("pc-fullscreen").addEventListener("click", toggleFullscreen);
     $("pc-clip").addEventListener("click", makeClip);
@@ -262,8 +290,8 @@
         $("about-name").textContent = n; $("chat-identity-name").textContent = n; $("pin-by").textContent = n;
         $("nav-avatar").textContent = n[0].toUpperCase(); document.title = `${n} - Jitter`;
     }
-    makeEditable($("stream-title"), v => { if (state.streaming) appendSystemMessage(`Stream title updated: ${v}`); });
-    makeEditable($("game-name"), v => { if (state.streaming) appendSystemMessage(`${streamerName()} is now playing ${v}`); });
+    makeEditable($("stream-title"), v => { if (state.streaming) { appendSystemMessage(`Stream title updated: ${v}`); react("titleChange"); } });
+    makeEditable($("game-name"), v => { if (state.streaming) { appendSystemMessage(`${streamerName()} is now playing ${v}`); react("gameChange"); } });
     makeEditable($("my-streamer-name"), syncStreamerName);
     syncStreamerName();
 
@@ -279,7 +307,7 @@
         state.subscribed = !state.subscribed;
         subBtn.classList.toggle("subscribed", state.subscribed);
         subBtn.querySelector("span").textContent = state.subscribed ? "Subscribed" : "Subscribe";
-        if (state.subscribed) { toast(`Subscribed to ${streamerName()} — Tier 1`); if (state.streaming) appendAlert("", `You just subscribed to ${streamerName()}!`, "Tier 1 · Welcome to the community", "i-star"); }
+        if (state.subscribed) { toast(`Subscribed to ${streamerName()} — Tier 1`); if (state.streaming) { appendAlert("", `You just subscribed to ${streamerName()}!`, "Tier 1 · Welcome to the community", "i-star"); react("sub"); } }
     });
     $("share-button").addEventListener("click", async () => { try { await navigator.clipboard.writeText(location.href); toast("Link copied to clipboard"); } catch (_) { toast(location.href); } });
     $("nav-bits").addEventListener("click", e => { e.preventDefault(); state.bits += 500; $("bits-balance").textContent = fmt(state.bits); toast("Added 500 bits (free in the simulator)."); });
@@ -307,6 +335,7 @@
         appendChatMessage(streamerName(), text, "#FFD700", { badges: ["broadcaster"], self: true });
         userChatInput.value = "";
         emotePicker.classList.remove("visible");
+        if (state.streaming) scheduleLines(Generator.repliesToStreamer(text, ctx()));
         document.dispatchEvent(new CustomEvent("jitter:usermessage", { detail: { text } }));
     }
     function handleCommand(cmd) {
@@ -315,7 +344,7 @@
         switch (name.toLowerCase()) {
             case "me": appendChatMessage(streamerName(), arg, "#FFD700", { badges: ["broadcaster"], self: true }); break;
             case "clear": chatBox.innerHTML = ""; state.lines = 0; appendSystemMessage("Chat was cleared by a moderator."); break;
-            case "pin": $("pin-text").textContent = arg; $("chat-pinned").classList.toggle("visible", !!arg); break;
+            case "pin": $("pin-text").textContent = arg; $("chat-pinned").classList.toggle("visible", !!arg); if (arg) react("pin"); break;
             case "unpin": $("chat-pinned").classList.remove("visible"); break;
             case "title": if (arg) { $("stream-title").textContent = arg; appendSystemMessage(`Stream title updated: ${arg}`); } break;
             case "game": if (arg) { $("game-name").textContent = arg; appendSystemMessage(`${streamerName()} is now playing ${arg}`); } break;
@@ -340,7 +369,7 @@
     function showSuperChat() {
         state.superChatTimer = null;
         if (!state.streaming) return;
-        const username = Generator.username(), bits = rand(901) + 100, msg = Generator.cheerMessage();
+        const username = Generator.username(), bits = rand(901) + 100, msg = Generator.cheerMessage(ctx());
         superChatLabel.innerHTML = `<svg class="icon"><use href="#i-bits"/></svg><span></span>`;
         superChatLabel.querySelector("span").textContent = `${username} cheered ${fmt(bits)} bits`;
         superChatMessage.textContent = msg;
@@ -356,22 +385,34 @@
     // ---------------------------------------------------------------- Chat loop
     const speedSlider = $("speed-slider"), speedVal = $("speed-val");
     speedSlider.addEventListener("input", () => { state.speed = 0.25 * Math.pow(2, speedSlider.value / 25); speedVal.textContent = `${state.speed.toFixed(state.speed < 1 ? 2 : 1)}×`; });
-    $("mood-select").addEventListener("change", e => { state.mood = e.target.value; });
+    const moodSelect = $("mood-select");
+    moodSelect.addEventListener("change", e => { state.mood = e.target.value; Generator.setMood(e.target.value); });
+    setInterval(() => {
+        if (!state.streaming) return;
+        Generator.tick();
+        const topic = Generator.topic();
+        moodSelect.options[0].textContent = `Auto (${Generator.mood()}${topic ? ` · ${topic}` : ""})`;
+    }, 2500);
     $("sim-head").addEventListener("click", () => $("sim-panel").classList.toggle("collapsed"));
 
     function createChatMessage() {
         if (!state.streaming) return;
-        const user = Generator.username();
-        // 40% chance to pull a raider message instead of a typical message while a raid is active
-        const msg = state.raidAccepted && Math.random() < 0.40 ? Generator.raidMessage() : Generator.message();
-        const badges = [];
-        const r = Math.random();
-        if (r < 0.02) badges.push("mod"); else if (r < 0.04) badges.push("vip"); else if (r < 0.30) badges.push("sub"); else if (r < 0.36) badges.push("prime");
-        appendChatMessage(user, msg, Generator.color(), { badges, firstTime: Math.random() < 0.02 });
+        const c = ctx();
+        // While a raid is fresh, ~40% of messages are raider greetings / welcomes (fading out over a few minutes)
+        const raidShare = state.raidAccepted ? Math.max(0, 0.40 * (1 - (Date.now() - state.raidAt - 120000) / 150000)) : 0;
+        if (Math.random() < Math.min(0.40, raidShare)) {
+            const who = Generator.next(Object.assign(c, { raidActive: true })).chatter;
+            appendChatMessage(who.name, Generator.raidMessage(c), who.color, { badges: who.badges });
+        } else {
+            const { chatter, text, firstTime } = Generator.next(c);
+            appendChatMessage(chatter.name, text, chatter.color, { badges: chatter.badges, firstTime });
+        }
 
-        const burstChance = state.raidAccepted ? 0.95 : 0.85;
+        // Bursty pacing: mostly rapid-fire with occasional lulls; scales with viewers, raids and the speed slider
+        const burstChance = c.raidActive ? 0.95 : 0.85;
         const base = Math.random() < burstChance ? randBetween(10, 300) : randBetween(1000, 3000);
-        state.chatTimer = setTimeout(createChatMessage, base / state.speed);
+        const crowd = Math.min(2.5, Math.max(0.5, Math.sqrt(state.viewers / 1400)));
+        state.chatTimer = setTimeout(createChatMessage, base / state.speed / crowd);
     }
 
     function setToggleUI() {
@@ -388,7 +429,7 @@
             createChatMessage(); scheduleSuperChat();
             document.dispatchEvent(new CustomEvent("jitter:start"));
         } else {
-            clearTimeout(state.chatTimer); clearSuperChat();
+            clearTimeout(state.chatTimer); clearSuperChat(); clearPending();
             appendSystemMessage("STREAM ENDED");
             state.uptimeStart = null;
             document.dispatchEvent(new CustomEvent("jitter:stop"));
@@ -421,26 +462,27 @@
     $("accept-raid-btn").addEventListener("click", () => {
         raidModal.classList.remove("visible");
         state.raidAccepted = true; // Locks out future raids
+        state.raidAt = Date.now();
         const spike = state.raider.size;
         setViewers(state.viewers + spike);
-        if (state.streaming) appendAlert("raid", `${state.raider.name} is raiding with a party of ${fmt(spike)}!`, `Welcome, raiders from ${state.raider.game}!`, "i-raid");
+        Generator.onRaid(state.raider.name, spike);
+        if (state.streaming) { appendAlert("raid", `${state.raider.name} is raiding with a party of ${fmt(spike)}!`, `Welcome, raiders from ${state.raider.game}!`, "i-raid"); react("raid"); }
         toast(`${state.raider.name} raided with ${fmt(spike)} viewers!`);
         document.dispatchEvent(new CustomEvent("jitter:raid", { detail: state.raider }));
     });
 
     // ---------------------------------------------------------------- Data loading
     async function loadDictionaries() {
-        let loaded = false, names = null, words = null;
-        try {
-            const w = await fetch("data/google-10000-english-usa.txt");
-            if (w.ok) { words = (await w.text()).split(/\r?\n/).filter(l => l.trim()); loaded = true; }
-            const u = await fetch("data/xato-net-10-million-usernames-dup.txt");
-            if (u.ok) { names = (await u.text()).split(/\r?\n/).filter(l => l.trim()); loaded = true; }
-        } catch (e) { console.warn("Word lists unavailable (open via a local server to load them):", e.message); }
-        Generator.init({ names, words });
+        let loaded = false, names = null, words = null, phrases = null;
+        const load = async file => { try { const r = await fetch(`data/${file}`); if (!r.ok) return null; loaded = true; return (await r.text()).split(/\r?\n/).filter(l => l.trim()); } catch (e) { return null; } };
+        words = await load("google-10000-english-usa.txt");
+        names = await load("xato-net-10-million-usernames-dup.txt");
+        phrases = await load("11-miscellaneous-phrases.txt");
+        if (!loaded) console.warn("Word lists unavailable — open the page via a local server to load them.");
+        Generator.init({ names, words, phrases });
         toggleBtn.disabled = false; setToggleUI();
         const s = Generator.stats();
-        appendSystemMessage(loaded ? `Welcome to the chat room! Loaded ${fmt(s.names)} usernames and ${fmt(s.words)} words.` : "Welcome to the chat room! Running with built-in sample data (start a local server to load the full word lists).");
+        appendSystemMessage(loaded ? `Welcome to the chat room! Loaded ${fmt(s.names)} usernames, ${fmt(s.words)} words and ${fmt(s.quotes)} quotable phrases.` : "Welcome to the chat room! Running with built-in sample data (start a local server to load the full word lists).");
         if (new URLSearchParams(location.search).has("autostart")) toggleBtn.click();
     }
     setViewers(state.viewers);
