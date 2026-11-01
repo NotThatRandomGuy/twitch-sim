@@ -338,9 +338,11 @@
         if (state.streaming) scheduleLines(Generator.repliesToStreamer(text, ctx()));
         document.dispatchEvent(new CustomEvent("jitter:usermessage", { detail: { text } }));
     }
+    const extraCommands = {}; // other modules (events.js) register slash commands here
     function handleCommand(cmd) {
         const [name, ...rest] = cmd.slice(1).split(" ");
         const arg = rest.join(" ");
+        if (extraCommands[name.toLowerCase()]) return extraCommands[name.toLowerCase()](arg);
         switch (name.toLowerCase()) {
             case "me": appendChatMessage(streamerName(), arg, "#FFD700", { badges: ["broadcaster"], self: true }); break;
             case "clear": chatBox.innerHTML = ""; state.lines = 0; appendSystemMessage("Chat was cleared by a moderator."); break;
@@ -349,7 +351,7 @@
             case "title": if (arg) { $("stream-title").textContent = arg; appendSystemMessage(`Stream title updated: ${arg}`); } break;
             case "game": if (arg) { $("game-name").textContent = arg; appendSystemMessage(`${streamerName()} is now playing ${arg}`); } break;
             case "raid": openRaidPrompt(); break;
-            case "help": appendSystemMessage("Commands: /me, /clear, /pin <text>, /unpin, /title <text>, /game <text>, /raid, /help"); break;
+            case "help": appendSystemMessage(`Commands: /me, /clear, /pin <text>, /unpin, /title <text>, /game <text>, /raid, ${Object.keys(extraCommands).map(c => "/" + c).join(", ")}, /help`); break;
             default: appendSystemMessage(`Unknown command: /${name}. Try /help`);
         }
     }
@@ -412,7 +414,8 @@
         const burstChance = c.raidActive ? 0.95 : 0.85;
         const base = Math.random() < burstChance ? randBetween(10, 300) : randBetween(1000, 3000);
         const crowd = Math.min(2.5, Math.max(0.5, Math.sqrt(state.viewers / 1400)));
-        state.chatTimer = setTimeout(createChatMessage, base / state.speed / crowd);
+        const slow = state.slowMode ? 2.5 : 1;
+        state.chatTimer = setTimeout(createChatMessage, base * slow / state.speed / crowd);
     }
 
     function setToggleUI() {
@@ -488,5 +491,6 @@
     setViewers(state.viewers);
     loadDictionaries();
 
-    window.Jitter = { state, toast, appendChatMessage, appendSystemMessage, appendAlert, setViewers, streamerName, gameName };
+    function notify() { $("notif-dot").style.display = "block"; }
+    window.Jitter = { state, ctx, toast, notify, react, scheduleLines, appendChatMessage, appendSystemMessage, appendAlert, setViewers, streamerName, gameName, commands: extraCommands, fmt, $ };
 })();

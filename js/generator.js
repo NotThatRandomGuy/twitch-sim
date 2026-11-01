@@ -199,8 +199,8 @@
                 case "streamer": return streamer;
                 case "game": return shortGame(game);
                 case "game2": return pickNot(C.games, game);
-                case "other": return otherName(self);
-                case "n": return between(2, 99);
+                case "other": return ctx.other || otherName(self);
+                case "n": return ctx.n ?? between(2, 99);
                 case "hours": return between(1, 9);
                 case "country": return pick(C.countries);
                 case "food": return pick(C.foods);
@@ -299,6 +299,7 @@
         if (ch.salty) { w.salty *= 2.5; w.wholesome *= 0.3; }
         if (ch.nice) { w.wholesome *= 1.8; w.salty *= 0.4; }
         if (ch.bot) return "commands";
+        if (state.emoteOnly) return "emoteOnly";
         if (ch.raider && state.raider && chance(0.3)) return "raidline";
         return weighted(w);
     }
@@ -308,8 +309,8 @@
     function next(ctx = {}) {
         const ch = pickChatter(ctx);
         let text;
-        if (ch.bot) text = pick(["Remember to follow the channel rules: be kind, no spoilers, no self-promo.", "Drink water! Hydration check.", `Follow ${ctx.streamer || "the streamer"} on socials with !socials`, "Clips are enabled! Use the clip button for great moments.", "Want to support the stream? !sub !bits !merch", "Chat is in low-latency mode.", "Enjoying the stream? Hit that follow button!"]);
-        else if (state.wave && state.wave.remaining > 0 && chance(0.55)) { state.wave.remaining--; text = Array(between(1, 4)).fill(state.wave.token).join(" "); if (chance(0.3)) text = `${pick(C.shortBursts)} ${text}`; }
+        if (ch.bot && !state.emoteOnly) text = pick(["Remember to follow the channel rules: be kind, no spoilers, no self-promo.", "Drink water! Hydration check.", `Follow ${ctx.streamer || "the streamer"} on socials with !socials`, "Clips are enabled! Use the clip button for great moments.", "Want to support the stream? !sub !bits !merch", "Chat is in low-latency mode.", "Enjoying the stream? Hit that follow button!"]);
+        else if (state.wave && state.wave.remaining > 0 && chance(0.55) && !state.emoteOnly) { state.wave.remaining--; text = Array(between(1, 4)).fill(state.wave.token).join(" "); if (chance(0.3)) text = `${pick(C.shortBursts)} ${text}`; }
         else {
             for (let i = 0; i < 4; i++) {
                 const cat = pickCategory(ch);
@@ -369,6 +370,12 @@
             case "titleChange": return burst(E.titleChange, between(2, 5), ctx, 6000);
             case "gameChange": return burst(E.gameChange, between(4, 10), ctx, 8000);
             case "pin": return burst(["pinned KEKW", "the pin", "pin is law", "read the pin", "PINNED"], between(1, 3), ctx, 4000);
+            case "resub": return burst(E.resub, between(2, 5), ctx, 5000, { emoteScale: 1.2 });
+            case "timeout": startWave(pick(["KEKW", "o7", "PETTHEMODS"]), between(3, 7)); return burst(E.timeout, between(5, 10), ctx, 6000);
+            case "slowMode": return burst(E.slowMode, between(3, 6), ctx, 12000);
+            case "brb": return burst(E.brb, between(4, 8), ctx, 10000);
+            case "back": return burst(E.back, between(5, 10), ctx, 5000, { emoteScale: 1.3 });
+            case "smallCheer": { const ch = pickChatter(ctx); const bits = pick([1, 5, 10, 25, 50, 100, 100, 200]); noteSpoke(ch); return [{ chatter: ch, text: fill(pick(E.smallCheer), ctx, ch.name).replace("{bits}", bits), delay: 100, bits }]; }
             default: return [];
         }
     }
@@ -392,7 +399,8 @@
     // ------------------------------------------------------------------ public API
     window.Generator = {
         EMOTES: C.emotes, EMOTE_SETS: C.emoteSets, COLORS: C.colors,
-        init, stats, username, color, tick, setMood, startWave, onRaid,
+        init, stats, username, color, tick, setMood, startWave, onRaid, pickChatter, makeChatter, addChatter,
+        setEmoteOnly: v => { state.emoteOnly = !!v; }, emoteOnly: () => !!state.emoteOnly,
         mood: () => state.mood, topic: () => state.topic, chatters: () => pool, recent: () => recent.slice(),
         next, message, raidMessage, cheerMessage, react, repliesToStreamer, fill,
         markov: () => markov
