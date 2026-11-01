@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jitter — Live Stream Simulator</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2319e0b1'/%3E%3Ctext x='16' y='23' font-family='Arial,Helvetica,sans-serif' font-weight='900' font-size='20' text-anchor='middle' fill='%230b0b0d'%3EJ%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- SVG sprite -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <symbol id="i-search" viewBox="0 0 20 20"><path d="M13.192 14.606a7 7 0 1 1 1.414-1.414l3.101 3.1-1.414 1.415-3.1-3.1zM8 13A5 5 0 1 0 8 3a5 5 0 0 0 0 10z"/></symbol>
+            <symbol id="i-more" viewBox="0 0 20 20"><path d="M10 18a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0-6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0-6a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></symbol>
+            <symbol id="i-crown" viewBox="0 0 20 20"><path d="M13.798 10.456 10 6.657l-3.798 3.799L4 8.254V15h12V8.254l-2.202 2.202zM18 5v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5l4.202 4.202L10 5.404l3.798 3.798L18 5z"/></symbol>
+            <symbol id="i-bell" viewBox="0 0 20 20"><path d="M4 11.5V9a6 6 0 0 1 12 0v2.5l2 2V15H2v-1.5l2-2zM7 16h6a3 3 0 1 1-6 0z"/></symbol>
+            <symbol id="i-inbox" viewBox="0 0 20 20"><path d="M2 4h16v12H2V4zm2 2v1.72l6 3.6 6-3.6V6H4zm0 4.05V14h12v-3.95l-6 3.6-6-3.6z"/></symbol>
+            <symbol id="i-bits" viewBox="0 0 20 20"><path d="M10 1 3 10l7 9 7-9-7-9zm0 3.4L14.6 10 10 15.6 5.4 10 10 4.4z"/></symbol>
+            <symbol id="i-heart" viewBox="0 0 20 20"><path d="M9.171 4.171A4 4 0 0 0 6.343 3a4 4 0 0 0-4 4c0 1.29.5 2.4 1.4 3.3L10 17l6.257-6.7A4.52 4.52 0 0 0 17.657 7a4 4 0 0 0-4-4 4 4 0 0 0-2.828 1.171L10 5l-.829-.829z"/></symbol>
+            <symbol id="i-heart-fill" viewBox="0 0 20 20"><path d="M10 17 3.743 10.3A4.52 4.52 0 0 1 2.343 7a4 4 0 0 1 4-4A4 4 0 0 1 10 5a4 4 0 0 1 3.657-2 4 4 0 0 1 4 4c0 1.29-.5 2.4-1.4 3.3L10 17z"/></symbol>
+            <symbol id="i-star" viewBox="0 0 20 20"><path d="m10 1.5 2.6 5.6 6.1.7-4.5 4.2 1.2 6L10 15l-5.4 3 1.2-6L1.3 7.8l6.1-.7L10 1.5z"/></symbol>
+            <symbol id="i-share" viewBox="0 0 20 20"><path d="M15 6a3 3 0 1 0-2.83-4H12a3 3 0 0 0 .18 1.02L7.3 5.84a3 3 0 1 0 0 4.32l4.88 2.82A3 3 0 1 0 13 11.5l-4.88-2.82a3.06 3.06 0 0 0 0-1.36L13 4.5A3 3 0 0 0 15 6z"/></symbol>
+            <symbol id="i-user" viewBox="0 0 20 20"><path d="M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 1 1 14 0H3z"/></symbol>
+            <symbol id="i-users" viewBox="0 0 20 20"><path d="M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM1 17a6 6 0 0 1 12 0H1zm13.5-6c2.5 0 4.5 2 4.5 4.5V17h-4a7 7 0 0 0-2.1-5c.5-.3 1-.5 1.6-.5z"/></symbol>
+            <symbol id="i-clock" viewBox="0 0 20 20"><path d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm0-2a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm1-6h3v2H9V5h2v5z"/></symbol>
+            <symbol id="i-collapse" viewBox="0 0 20 20"><path d="M16 16V4h2v12h-2zM6 9l2.501-2.5-1.5-1.5-5 5 5 5 1.5-1.5-2.5-2.5h8V9H6z"/></symbol>
+            <symbol id="i-expand" viewBox="0 0 20 20"><path d="M4 16V4H2v12h2zm10-7-2.501-2.5 1.5-1.5 5 5-5 5-1.5-1.5L14 11H6V9h8z"/></symbol>
+            <symbol id="i-play" viewBox="0 0 20 20"><path d="M5 17.066V2.934a.5.5 0 0 1 .777-.416l10.599 7.066a.5.5 0 0 1 0 .832L5.777 17.482A.5.5 0 0 1 5 17.066z"/></symbol>
+            <symbol id="i-pause" viewBox="0 0 20 20"><path d="M8 3H4v14h4V3zm8 0h-4v14h4V3z"/></symbol>
+            <symbol id="i-volume" viewBox="0 0 20 20"><path d="M9 4 5 8H2v4h3l4 4V4zm3.5 6a3.5 3.5 0 0 0-1.5-2.87v5.74A3.5 3.5 0 0 0 12.5 10zM11 3.23v2.06a5 5 0 0 1 0 9.42v2.06a7 7 0 0 0 0-13.54z"/></symbol>
+            <symbol id="i-mute" viewBox="0 0 20 20"><path d="M9 4 5 8H2v4h3l4 4V4zm8.414 3.586L15.5 9.5l-1.914-1.914L12.172 9 14.086 10.914 12.172 12.828l1.414 1.414L15.5 12.328l1.914 1.914 1.414-1.414L16.914 10.914l1.914-1.914-1.414-1.414z"/></symbol>
+            <symbol id="i-settings" viewBox="0 0 20 20"><path d="M10 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/><path d="M9 2h2a2 2 0 0 1 2 2v.18a6.97 6.97 0 0 1 1.52.88l.16-.09a2 2 0 0 1 2.73.73l1 1.73a2 2 0 0 1-.73 2.73l-.16.1a7.06 7.06 0 0 1 0 1.75l.16.1a2 2 0 0 1 .73 2.73l-1 1.73a2 2 0 0 1-2.73.73l-.16-.09a6.97 6.97 0 0 1-1.52.88V18a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-.18a6.97 6.97 0 0 1-1.52-.88l-.16.09a2 2 0 0 1-2.73-.73l-1-1.73a2 2 0 0 1 .73-2.73l.16-.1a7.06 7.06 0 0 1 0-1.75l-.16-.1a2 2 0 0 1-.73-2.73l1-1.73a2 2 0 0 1 2.73-.73l.16.09A6.97 6.97 0 0 1 7 4.18V4a2 2 0 0 1 2-2zm1 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></symbol>
+            <symbol id="i-theater" viewBox="0 0 20 20"><path d="M2 4h16v12H2V4zm2 2v8h12V6H4z"/></symbol>
+            <symbol id="i-fullscreen" viewBox="0 0 20 20"><path d="M7 3H2v5h2V5h3V3zm6 0h5v5h-2V5h-3V3zm-6 14H2v-5h2v3h3v2zm6 0h5v-5h-2v3h-3v2z"/></symbol>
+            <symbol id="i-clip" viewBox="0 0 20 20"><path d="M6 3a3 3 0 0 1 2.83 4L18 12.5v2l-9.17-5.5A3 3 0 1 1 6 3zm0 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm0 9a3 3 0 0 1 2.83-2L18 5.5v2l-9.17 5.5A3 3 0 1 1 6 14z"/></symbol>
+            <symbol id="i-smile" viewBox="0 0 20 20"><path d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm0-2a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm-2.5-6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM6.5 11h7a3.5 3.5 0 0 1-7 0z"/></symbol>
+            <symbol id="i-chevron" viewBox="0 0 20 20"><path d="m10 13.5-6-6 1.5-1.5L10 10.5 14.5 6 16 7.5l-6 6z"/></symbol>
+            <symbol id="i-verified" viewBox="0 0 20 20"><path d="m10 1 2.3 2 3-.4 1 2.8 2.7 1.4-1 2.8L19.2 12l-2.2 2-.1 3-3 .3-1.5 2.6L10 18.3 7.6 19.9 6.1 17.3l-3-.3-.1-3L.8 12l1.2-2.4-1-2.8 2.7-1.4 1-2.8 3 .4L10 1zm-1.2 12.4 5.4-5.4-1.4-1.4-4 4-2-2-1.4 1.4 3.4 3.4z"/></symbol>
+            <symbol id="i-pin" viewBox="0 0 20 20"><path d="M11 2h3v2l-1 1v4l3 3v2h-5v5h-2v-5H4v-2l3-3V5L6 4V2h5z"/></symbol>
+            <symbol id="i-gift" viewBox="0 0 20 20"><path d="M7 2a3 3 0 0 1 3 3 3 3 0 0 1 3-3 2.5 2.5 0 0 1 0 5h3v4H4V7h3a2.5 2.5 0 0 1 0-5zm0 2a.5.5 0 0 0 0 1h2a2 2 0 0 0-2-1zm6 0a2 2 0 0 0-2 1h2a.5.5 0 0 0 0-1zM4 12h5v6H4v-6zm7 0h5v6h-5v-6z"/></symbol>
+            <symbol id="i-raid" viewBox="0 0 20 20"><path d="M3 10a7 7 0 0 1 12.9-3.8l1.6-1.6V10h-5.4l1.9-1.9A5 5 0 1 0 15 10h2a7 7 0 0 1-14 0z"/></symbol>
+            <symbol id="i-sword" viewBox="0 0 20 20"><path d="M16 2h2v2l-9 9 1 1-1.5 1.5-1-1L5 17 3 15l2.5-2.5-1-1L6 10l1 1 9-9z"/></symbol>
+            <symbol id="i-camera" viewBox="0 0 20 20"><path d="M2 5h10a2 2 0 0 1 2 2v1l4-2v8l-4-2v1a2 2 0 0 1-2 2H2V5z"/></symbol>
+            <symbol id="i-diamond" viewBox="0 0 20 20"><path d="M5 3h10l4 5-9 10L1 8l4-5z"/></symbol>
+            <symbol id="i-close" viewBox="0 0 20 20"><path d="M8.5 10 4 5.5 5.5 4 10 8.5 14.5 4 16 5.5 11.5 10l4.5 4.5-1.5 1.5-4.5-4.5L5.5 16 4 14.5 8.5 10z"/></symbol>
+            <symbol id="i-upload" viewBox="0 0 20 20"><path d="M10 2 5 7h3v6h4V7h3l-5-5zM3 15h14v3H3v-3z"/></symbol>
+            <symbol id="i-link" viewBox="0 0 20 20"><path d="M8 12.5 12.5 8l1.4 1.4L9.4 13.9 8 12.5zm-1.5 3a2.5 2.5 0 0 1-3.5-3.5l2.5-2.5-1.4-1.4L1.6 10.6a4.5 4.5 0 0 0 6.4 6.4l2.5-2.5-1.4-1.4L6.5 15.5zm7-7 2.5-2.5a2.5 2.5 0 0 0-3.5-3.5L10 5l-1.4-1.4L11 1.1a4.5 4.5 0 0 1 6.4 6.4l-2.5 2.5L13.5 8.5z"/></symbol>
+            <symbol id="i-ban" viewBox="0 0 20 20"><path d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm0-2a6 6 0 0 0 4.9-9.5L6.5 14.9A6 6 0 0 0 10 16zM5.1 13.5l8.4-8.4A6 6 0 0 0 5.1 13.5z"/></symbol>
+        </defs>
+    </svg>
+
+    <!-- ===================== Top navigation ===================== -->
+    <nav class="top-nav" aria-label="Primary navigation">
+        <a class="brand" href="#" aria-label="Jitter home"><span class="brand-logo">J</span>Jitter</a>
+        <a class="nav-link" href="#browse">Browse</a>
+        <a class="nav-link" href="#following">Following</a>
+        <span class="nav-more" role="button" aria-label="More" data-tip="More" style="display:grid"><svg class="icon"><use href="#i-more"/></svg></span>
+        <div class="nav-search">
+            <form role="search" onsubmit="return false;">
+                <input id="nav-search-input" type="search" placeholder="Search" aria-label="Search Jitter">
+                <button type="submit" aria-label="Search"><svg class="icon"><use href="#i-search"/></svg></button>
+            </form>
+        </div>
+        <div class="nav-right">
+            <span class="nav-icon tip-bottom" data-tip="Prime Loot" role="button"><svg class="icon"><use href="#i-crown"/></svg></span>
+            <span class="nav-icon tip-bottom" id="nav-notifications" data-tip="Notifications" role="button"><svg class="icon"><use href="#i-bell"/></svg><span class="dot" id="notif-dot" style="display:none"></span></span>
+            <span class="nav-icon tip-bottom" data-tip="Whispers" role="button"><svg class="icon"><use href="#i-inbox"/></svg></span>
+            <a class="nav-bits" href="#bits" id="nav-bits"><svg class="icon sm"><use href="#i-bits"/></svg>Get Bits</a>
+            <span class="nav-avatar" id="nav-avatar" role="button" aria-label="User menu" data-tip="You" >T</span>
+        </div>
+    </nav>
+
+    <!-- ===================== Raid request banner ===================== -->
+    <div id="raid-modal" class="raid-modal" role="dialog" aria-label="Incoming raid">
+        <div class="raid-content">
+            <div class="raid-avatar" id="raid-avatar">L</div>
+            <div>
+                <div><strong id="raid-from">LongLiveTheEmpire</strong> wants to raid your channel</div>
+                <div class="raid-sub">Bringing <strong id="raid-size">1,900</strong> viewers from <span id="raid-game">Halo Infinite</span></div>
+            </div>
+        </div>
+        <div class="raid-actions">
+            <button id="accept-raid-btn" class="btn primary">Accept raid</button>
+            <button id="reject-raid-btn" class="btn icon-btn" aria-label="Decline raid" data-tip="Decline"><svg class="icon"><use href="#i-close"/></svg></button>
+        </div>
+    </div>
+
+    <button class="btn icon-btn chat-expand-btn" id="chat-expand-btn" aria-label="Expand chat" data-tip="Expand chat"><svg class="icon"><use href="#i-collapse"/></svg></button>
+    <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+    <div class="app">
+        <!-- ===================== Left sidebar ===================== -->
+        <aside class="left-sidebar" id="left-sidebar" aria-label="Channels">
+            <div class="side-head">
+                <span class="side-title">Recommended channels</span>
+                <button class="collapse-btn" id="collapse-left-btn" aria-label="Collapse sidebar" data-tip="Collapse"><svg class="icon"><use href="#i-collapse"/></svg></button>
+            </div>
+            <div class="side-list" id="side-list"></div>
+            <div class="side-foot">Jitter is a local, offline simulator. <a href="#about">How it works</a></div>
+        </aside>
+
+        <!-- ===================== Main column ===================== -->
+        <main class="main-content">
+            <div class="player" id="player">
+                <video id="stream-video" autoplay loop muted playsinline></video>
+                <iframe id="youtube-frame" title="YouTube stream source" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                <div class="player-placeholder" id="player-placeholder">
+                    <div class="ph-inner">
+                        <div class="brand-logo ph-logo">J</div>
+                        <h2>No video source yet</h2>
+                        <p>Upload a clip, use your webcam, or paste a YouTube link below. Chat runs with or without video.</p>
+                    </div>
+                </div>
+                <div class="player-top">
+                    <span class="live-badge offline" id="live-badge">Offline</span>
+                    <div class="player-stats">
+                        <span class="player-stat viewers" data-tip="Viewers"><svg class="icon"><use href="#i-user"/></svg><span id="player-viewer-count">1,402</span></span>
+                        <span class="player-stat" data-tip="Uptime"><svg class="icon"><use href="#i-clock"/></svg><span id="player-uptime">0:00:00</span></span>
+                    </div>
+                </div>
+                <div id="super-chat" class="super-chat" aria-live="polite">
+                    <span id="super-chat-label" class="super-chat__label"></span>
+                    <div id="super-chat-message" class="super-chat__message"></div>
+                </div>
+                <div class="player-controls" id="player-controls">
+                    <button class="pc-btn" id="pc-play" aria-label="Pause" data-tip="Pause (space)"><svg class="icon"><use href="#i-pause"/></svg></button>
+                    <button class="pc-btn" id="pc-mute" aria-label="Unmute" data-tip="Unmute (m)"><svg class="icon"><use href="#i-mute"/></svg></button>
+                    <input class="pc-volume" id="pc-volume" type="range" min="0" max="1" step="0.02" value="0.5" aria-label="Volume">
+                    <span class="pc-live">LIVE</span>
+                    <span class="pc-spacer"></span>
+                    <button class="pc-btn" id="pc-clip" aria-label="Clip" data-tip="Clip (alt+x)"><svg class="icon"><use href="#i-clip"/></svg></button>
+                    <button class="pc-btn" id="pc-settings" aria-label="Settings" data-tip="Settings"><svg class="icon"><use href="#i-settings"/></svg></button>
+                    <button class="pc-btn" id="pc-theater" aria-label="Theater mode" data-tip="Theater mode (alt+t)"><svg class="icon"><use href="#i-theater"/></svg></button>
+                    <button class="pc-btn" id="pc-fullscreen" aria-label="Fullscreen" data-tip="Fullscreen (f)"><svg class="icon"><use href="#i-fullscreen"/></svg></button>
+                </div>
+            </div>
+
+            <section class="channel-info" aria-label="Channel information">
+                <div class="channel-avatar-wrap offline" id="channel-avatar-wrap">
+                    <div class="channel-avatar" id="channel-avatar" aria-label="Streamer profile"><svg class="icon"><use href="#i-user"/></svg></div>
+                    <span class="avatar-live">Live</span>
+                </div>
+                <div class="channel-text">
+                    <div class="channel-name-row">
+                        <span class="streamer-name-display editable-text" id="my-streamer-name" tabindex="0" title="Click to edit streamer name">ThatGamerDude</span>
+                        <svg class="verified" aria-label="Verified"><use href="#i-verified"/></svg>
+                    </div>
+                    <h1 id="stream-title" class="stream-title editable-text" tabindex="0" title="Click to edit stream title">for your consideration: worst ghost of all</h1>
+                    <p class="stream-meta">
+                        <span id="game-name" class="game-name editable-text" tabindex="0" title="Click to edit category">Call of Duty: Ghosts</span>
+                    </p>
+                    <div class="tags" id="tags">
+                        <span class="tag">English</span><span class="tag">FPS</span><span class="tag">Chill</span><span class="tag">Backseating OK</span>
+                    </div>
+                </div>
+                <div class="channel-actions">
+                    <div class="action-row">
+                        <button class="btn primary follow-btn" id="follow-button"><svg class="icon sm"><use href="#i-heart"/></svg><span>Follow</span></button>
+                        <button class="btn sub-btn" id="sub-button"><svg class="icon sm"><use href="#i-star"/></svg><span>Subscribe</span></button>
+                        <button class="btn icon-btn" id="share-button" aria-label="Share" data-tip="Share"><svg class="icon"><use href="#i-share"/></svg></button>
+                        <button class="btn icon-btn" aria-label="More" data-tip="More"><svg class="icon"><use href="#i-more"/></svg></button>
+                    </div>
+                    <div class="stats-row">
+                        <span class="live-viewers"><svg class="icon sm"><use href="#i-user"/></svg><span id="viewer-count">1,402</span></span>
+                        <span class="uptime"><svg class="icon sm"><use href="#i-clock"/></svg><span id="uptime">0:00:00</span></span>
+                        <span><span id="follower-count">48.2K</span> followers</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="source-toolbar" aria-label="Stream source selector">
+                <span class="section-label">Stream source</span>
+                <div class="source-actions">
+                    <button id="upload-source-btn" class="btn source-btn" type="button"><svg class="icon sm"><use href="#i-upload"/></svg>Upload video</button>
+                    <button id="webcam-source-btn" class="btn source-btn" type="button"><svg class="icon sm"><use href="#i-camera"/></svg>Use webcam</button>
+                    <button id="youtube-source-btn" class="btn source-btn" type="button"><svg class="icon sm"><use href="#i-link"/></svg>YouTube link</button>
+                    <button id="clear-source-btn" class="btn ghost" type="button">Clear source</button>
+                </div>
+                <input id="video-file-input" type="file" accept="video/*" hidden>
+                <div id="youtube-input-row" class="youtube-input">
+                    <input id="youtube-url-input" type="url" placeholder="Paste a YouTube URL or 11-character video ID" aria-label="YouTube video URL">
+                    <button id="load-youtube-btn" class="btn primary" type="button">Load</button>
+                </div>
+                <p id="source-status" class="source-status">Choose a source to begin your stream preview.</p>
+            </section>
+
+            <section class="about-panel" id="about" aria-label="About">
+                <h3>About <span id="about-name">ThatGamerDude</span></h3>
+                <div class="about-stats"><span><strong id="about-followers">48.2K</strong> followers</span><span><strong id="about-subs">1.1K</strong> subscribers</span><span>Streaming since <strong>2019</strong></span></div>
+                <p id="about-text">Variety gamer, professional ghost-misser, occasional speedrunner. Chat is simulated locally in your browser: no accounts, no servers, no data leaves this page.</p>
+                <p>Shortcuts: <span class="kbd">R</span> trigger a raid &nbsp; <span class="kbd">Alt</span>+<span class="kbd">T</span> theater mode &nbsp; <span class="kbd">F</span> fullscreen &nbsp; <span class="kbd">M</span> mute &nbsp; <span class="kbd">Alt</span>+<span class="kbd">X</span> clip</p>
+            </section>
+        </main>
+
+        <!-- ===================== Chat sidebar ===================== -->
+        <aside class="chat-sidebar" id="chat-sidebar" aria-label="Stream chat">
+            <div class="chat-header">
+                <button class="btn icon-btn ghost" id="collapse-chat-btn" aria-label="Collapse chat" data-tip="Collapse"><svg class="icon"><use href="#i-expand"/></svg></button>
+                <h2>Stream Chat</h2>
+                <button class="btn icon-btn ghost" id="chat-users-btn" aria-label="Community" data-tip="Community"><svg class="icon"><use href="#i-users"/></svg></button>
+            </div>
+            <div class="hype-train" id="hype-train">
+                <div class="ht-top"><span id="ht-title">Hype Train — Level 1</span><span id="ht-timer">4:59</span></div>
+                <div class="ht-bar"><div class="ht-fill" id="ht-fill"></div></div>
+                <div class="ht-sub" id="ht-sub">Cheer or subscribe to keep it going!</div>
+            </div>
+            <div class="chat-pinned" id="chat-pinned">
+                <div class="pin-label"><svg class="icon sm"><use href="#i-pin"/></svg> Pinned by <span id="pin-by">ThatGamerDude</span></div>
+                <div id="pin-text"></div>
+            </div>
+            <div class="chat-scroll-wrap">
+                <div class="chat-messages" id="chat-box" aria-live="polite"></div>
+                <button class="chat-paused" id="chat-paused"><svg class="icon sm"><use href="#i-chevron"/></svg> Chat paused due to scroll</button>
+            </div>
+            <div class="chat-input-area">
+                <div class="chat-input-wrap">
+                    <input type="text" id="user-chat-input" placeholder="Send a message" maxlength="500" autocomplete="off">
+                    <button class="btn icon-btn ghost" id="emote-btn" aria-label="Emotes" data-tip="Emotes"><svg class="icon"><use href="#i-smile"/></svg></button>
+                    <div class="emote-picker" id="emote-picker"><div class="ep-title">Channel emotes</div><div class="emote-grid" id="emote-grid"></div></div>
+                </div>
+                <div class="chat-input-row">
+                    <div class="left">
+                        <span class="chat-identity" id="chat-identity"><span class="ident-dot"></span><span id="chat-identity-name">ThatGamerDude</span></span>
+                        <span class="bits-balance" data-tip="Your bits"><svg class="icon"><use href="#i-bits"/></svg><span id="bits-balance">2,500</span></span>
+                    </div>
+                    <div class="right">
+                        <button class="btn icon-btn ghost" id="chat-settings-btn" aria-label="Chat settings" data-tip="Chat settings"><svg class="icon"><use href="#i-settings"/></svg></button>
+                        <button class="btn primary" id="send-chat-btn">Chat</button>
+                    </div>
+                </div>
+            </div>
+            <div class="sim-panel" id="sim-panel">
+                <div class="sim-head" id="sim-head" role="button" aria-expanded="true">
+                    <span class="section-label">Simulation</span>
+                    <svg class="icon sm chev"><use href="#i-chevron"/></svg>
+                </div>
+                <div class="sim-body">
+                    <button class="btn primary toggle-stream loading" id="toggle-stream" disabled>Loading chat data…</button>
+                    <div class="sim-row">
+                        <label for="speed-slider">Chat speed</label>
+                        <input id="speed-slider" type="range" min="0" max="100" value="50">
+                        <span class="val" id="speed-val">1.0×</span>
+                    </div>
+                    <div class="sim-row">
+                        <label for="mood-select">Mood</label>
+                        <select id="mood-select" class="btn" style="flex:1;height:28px;font-size:12px;text-align:left">
+                            <option value="auto">Auto (drifts)</option>
+                            <option value="chill">Chill</option>
+                            <option value="hype">Hype</option>
+                            <option value="salty">Salty</option>
+                            <option value="wholesome">Wholesome</option>
+                        </select>
+                    </div>
+                    <div class="sim-grid">
+                        <button class="btn" id="raid-trigger-btn"><svg class="icon sm"><use href="#i-raid"/></svg>Raid (R)</button>
+                        <button class="btn" id="hype-trigger-btn"><svg class="icon sm"><use href="#i-bits"/></svg>Hype moment</button>
+                        <button class="btn" id="sub-trigger-btn"><svg class="icon sm"><use href="#i-gift"/></svg>Gift subs</button>
+                        <button class="btn" id="clear-chat-btn"><svg class="icon sm"><use href="#i-ban"/></svg>Clear chat</button>
+                    </div>
+                    <div class="sim-row" style="justify-content:space-between">
+                        <label class="switch"><input type="checkbox" id="timestamps-toggle"> Timestamps</label>
+                        <label class="switch"><input type="checkbox" id="events-toggle" checked> Random events</label>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="js/corpus.js"></script>
+    <script src="js/generator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
